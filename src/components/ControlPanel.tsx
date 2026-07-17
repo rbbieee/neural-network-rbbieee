@@ -50,7 +50,7 @@ export function ControlPanel({
 
   return (
     <div className="panel">
-      <div className="panel-row">
+      <div className="panel-row" data-tour="run-controls">
         <button
           className={`btn primary${running ? " live" : ""}`}
           onClick={onToggleRun}
@@ -65,7 +65,7 @@ export function ControlPanel({
         </button>
       </div>
 
-      <label className="field">
+      <label className="field" data-tour="dataset">
         <span>Dataset</span>
         <select
           value={datasetName}
@@ -79,59 +79,61 @@ export function ControlPanel({
         </select>
       </label>
 
-      <label className="field">
-        <span>Activation</span>
-        <select
-          value={config.activation}
-          onChange={(e) =>
-            onConfigChange({ activation: e.target.value as ActivationName })
-          }
-        >
-          <option value="tanh">tanh</option>
-          <option value="relu">ReLU</option>
-          <option value="sigmoid">sigmoid</option>
-        </select>
-      </label>
+      <div data-tour="architecture">
+        <label className="field">
+          <span>Activation</span>
+          <select
+            value={config.activation}
+            onChange={(e) =>
+              onConfigChange({ activation: e.target.value as ActivationName })
+            }
+          >
+            <option value="tanh">tanh</option>
+            <option value="relu">ReLU</option>
+            <option value="sigmoid">sigmoid</option>
+          </select>
+        </label>
 
-      <label className="field">
-        <span>
-          Learning rate <code>{config.learningRate.toFixed(2)}</code>
-        </span>
-        <input
-          type="range"
-          min={0.01}
-          max={1}
-          step={0.01}
-          value={config.learningRate}
-          onChange={(e) =>
-            onConfigChange({ learningRate: Number(e.target.value) })
-          }
-        />
-      </label>
+        <label className="field">
+          <span>
+            Learning rate <code>{config.learningRate.toFixed(2)}</code>
+          </span>
+          <input
+            type="range"
+            min={0.01}
+            max={1}
+            step={0.01}
+            value={config.learningRate}
+            onChange={(e) =>
+              onConfigChange({ learningRate: Number(e.target.value) })
+            }
+          />
+        </label>
 
-      <div className="field">
-        <span>
-          Hidden layers
-          <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 1}>
-            -
-          </button>
-          <button className="btn tiny" onClick={addLayer} disabled={layers.length >= MAX_LAYERS}>
-            +
-          </button>
-        </span>
-        {layers.map((n, i) => (
-          <label key={i} className="layer-slider">
-            <code>layer {i + 1}: {n} neurons</code>
-            <input
-              type="range"
-              min={1}
-              max={MAX_NEURONS}
-              step={1}
-              value={n}
-              onChange={(e) => setNeurons(i, Number(e.target.value))}
-            />
-          </label>
-        ))}
+        <div className="field">
+          <span>
+            Hidden layers
+            <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 1}>
+              -
+            </button>
+            <button className="btn tiny" onClick={addLayer} disabled={layers.length >= MAX_LAYERS}>
+              +
+            </button>
+          </span>
+          {layers.map((n, i) => (
+            <label key={i} className="layer-slider">
+              <code>layer {i + 1}: {n} neurons</code>
+              <input
+                type="range"
+                min={1}
+                max={MAX_NEURONS}
+                step={1}
+                value={n}
+                onChange={(e) => setNeurons(i, Number(e.target.value))}
+              />
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   );

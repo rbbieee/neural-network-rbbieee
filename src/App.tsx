@@ -9,6 +9,8 @@ import { NetworkGraph } from "./components/NetworkGraph";
 import { DecisionBoundary } from "./components/DecisionBoundary";
 import { LossChart } from "./components/LossChart";
 import { ControlPanel } from "./components/ControlPanel";
+import { TutorialOverlay } from "./components/TutorialOverlay";
+import { InfoTooltip } from "./components/InfoTooltip";
 
 const INITIAL_CONFIG = {
   hiddenLayers: [4, 4],
@@ -20,6 +22,7 @@ const INITIAL_CONFIG = {
 export default function App() {
   const t = useTraining(INITIAL_CONFIG, "circles");
   const [probe, setProbe] = useState<number[][] | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   const handleProbe = (x: number, y: number) => {
     // Run a forward pass on the clicked point and keep the
@@ -38,10 +41,32 @@ export default function App() {
         <span className="titlebar-title">neural-network-rbbieee</span>
       </div>
 
-      <header className="header">
-        <h1>
-          neural-network-<span className="accent">rbbieee</span>
-        </h1>
+      <header className="header" data-tour="header">
+        <div className="header-top">
+          <h1>
+            neural-network-<span className="accent">rbbieee</span>
+          </h1>
+          <button
+            className="btn guide-btn"
+            onClick={() => setShowTutorial(true)}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
+              <text
+                x="8"
+                y="12"
+                textAnchor="middle"
+                fill="currentColor"
+                fontSize="10"
+                fontWeight="700"
+                fontFamily="inherit"
+              >
+                ?
+              </text>
+            </svg>
+            Guide
+          </button>
+        </div>
         <p className="tagline">
           A live readout of backpropagation. No black box, no math library
           between you and the gradient, every <span className="unit">weight</span>{" "}
@@ -70,15 +95,18 @@ export default function App() {
           }}
         />
 
-        <section className="card">
-          <h2 className="channel-label">Decision boundary</h2>
+        <section className="card" data-tour="decision-boundary">
+          <h2 className="channel-label">
+            Decision boundary
+            <InfoTooltip sectionId="decision-boundary" />
+          </h2>
           <DecisionBoundary
             network={t.network}
             data={t.data}
             epoch={t.stats.epoch}
             onProbe={handleProbe}
           />
-          <div className="stats">
+          <div className="stats" data-tour="stats">
             <span>
               epoch <code>{t.stats.epoch}</code>
             </span>
@@ -92,9 +120,15 @@ export default function App() {
         </section>
 
         <section className="card">
-          <h2 className="channel-label">Weights and activations</h2>
+          <h2 className="channel-label" data-tour="network-graph">
+            Weights and activations
+            <InfoTooltip sectionId="network-graph" />
+          </h2>
           <NetworkGraph network={t.network} probeActivations={probe} />
-          <h2 className="channel-label">Training loss</h2>
+          <h2 className="channel-label" data-tour="loss-chart">
+            Training loss
+            <InfoTooltip sectionId="loss-chart" />
+          </h2>
           <LossChart history={t.stats.lossHistory} />
         </section>
       </div>
@@ -107,6 +141,10 @@ export default function App() {
           boundary to probe a point and trace it through every layer.
         </p>
       </footer>
+
+      {showTutorial && (
+        <TutorialOverlay onClose={() => setShowTutorial(false)} />
+      )}
     </main>
   );
 }
