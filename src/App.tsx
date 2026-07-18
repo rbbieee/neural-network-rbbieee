@@ -3,7 +3,7 @@
 // the decision boundary as the main view, network state and
 // loss trace in the panel on the right.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTraining } from "./hooks/useTraining";
 import { NetworkGraph } from "./components/NetworkGraph";
 import { DecisionBoundary } from "./components/DecisionBoundary";
@@ -23,6 +23,15 @@ export default function App() {
   const t = useTraining(INITIAL_CONFIG, "circles");
   const [probe, setProbe] = useState<number[][] | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+  useEffect(() => {
+    if (theme === "dark") {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [theme]);
 
   const handleProbe = (x: number, y: number) => {
     // Run a forward pass on the clicked point and keep the
@@ -46,6 +55,14 @@ export default function App() {
           <h1>
             neural-network-<span className="accent">rbbieee</span>
           </h1>
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+            title="Toggle theme"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           <button
             className="btn guide-btn"
             onClick={() => setShowTutorial(true)}
