@@ -47,7 +47,12 @@ export function DecisionBoundary({ network, data, epoch, onProbe }: Props) {
         // painting a muddy third color everywhere.
         const t = network.predict(x, y);
         const confidence = Math.abs(t - 0.5) * 2;
-        ctx.fillStyle = t >= 0.5 ? "rgb(0, 113, 227)" : "rgb(255, 149, 0)";
+        // Get styles from CSS variables so they update with theme
+        const style = getComputedStyle(document.documentElement);
+        const colorPos = style.getPropertyValue("--pos").trim() || "#0071e3";
+        const colorNeg = style.getPropertyValue("--neg").trim() || "#ff9500";
+        
+        ctx.fillStyle = t >= 0.5 ? colorPos : colorNeg;
         ctx.globalAlpha = 0.06 + confidence * 0.5;
         ctx.fillRect(gx * cell, gy * cell, cell + 1, cell + 1);
       }
@@ -55,12 +60,17 @@ export function DecisionBoundary({ network, data, epoch, onProbe }: Props) {
     ctx.globalAlpha = 1;
 
     // Draw the training points on top
+    const style = getComputedStyle(document.documentElement);
+    const colorPos = style.getPropertyValue("--pos").trim() || "#0071e3";
+    const colorNeg = style.getPropertyValue("--neg").trim() || "#ff9500";
+    const colorWindow = style.getPropertyValue("--window").trim() || "#ffffff";
+
     for (const s of data) {
       ctx.beginPath();
       ctx.arc(toPx(s.x), toPx(s.y), 4, 0, Math.PI * 2);
-      ctx.fillStyle = s.label === 1 ? "#0071e3" : "#ff9500";
+      ctx.fillStyle = s.label === 1 ? colorPos : colorNeg;
       ctx.fill();
-      ctx.strokeStyle = "#ffffff";
+      ctx.strokeStyle = colorWindow;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
