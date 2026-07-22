@@ -3,6 +3,7 @@
 // changing the learning rate applies immediately.
 
 import type { NetworkConfig } from "../nn/network";
+import type { OptimizerName, RegularizationName } from "../nn/network";
 import type { ActivationName } from "../nn/activations";
 import { datasetLabels, type DatasetName } from "../nn/datasets";
 
@@ -17,7 +18,7 @@ interface Props {
   onDatasetChange: (name: DatasetName) => void;
 }
 
-const MAX_LAYERS = 4;
+const MAX_LAYERS = 6;
 const MAX_NEURONS = 8;
 
 export function ControlPanel({
@@ -95,17 +96,79 @@ export function ControlPanel({
         </label>
 
         <label className="field">
+          <span>Optimizer</span>
+          <select
+            value={config.optimizer}
+            onChange={(e) =>
+              onConfigChange({ optimizer: e.target.value as OptimizerName })
+            }
+          >
+            <option value="sgd">SGD</option>
+            <option value="momentum">Momentum</option>
+            <option value="adam">Adam</option>
+          </select>
+        </label>
+
+        <label className="field">
           <span>
-            Learning rate <code>{config.learningRate.toFixed(2)}</code>
+            Learning rate <code>{config.learningRate.toFixed(3)}</code>
           </span>
           <input
             type="range"
-            min={0.01}
+            min={0.001}
             max={1}
-            step={0.01}
+            step={0.001}
             value={config.learningRate}
             onChange={(e) =>
               onConfigChange({ learningRate: Number(e.target.value) })
+            }
+          />
+        </label>
+
+        <label className="field">
+          <span>Regularization</span>
+          <select
+            value={config.regularization}
+            onChange={(e) =>
+              onConfigChange({ regularization: e.target.value as RegularizationName })
+            }
+          >
+            <option value="none">None</option>
+            <option value="l1">L1</option>
+            <option value="l2">L2</option>
+          </select>
+        </label>
+
+        {config.regularization !== "none" && (
+          <label className="field">
+            <span>
+              Reg. rate <code>{config.regularizationRate.toFixed(4)}</code>
+            </span>
+            <input
+              type="range"
+              min={0.0001}
+              max={0.1}
+              step={0.0001}
+              value={config.regularizationRate}
+              onChange={(e) =>
+                onConfigChange({ regularizationRate: Number(e.target.value) })
+              }
+            />
+          </label>
+        )}
+
+        <label className="field">
+          <span>
+            Batch size <code>{config.batchSize}</code>
+          </span>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            value={config.batchSize}
+            onChange={(e) =>
+              onConfigChange({ batchSize: Number(e.target.value) })
             }
           />
         </label>

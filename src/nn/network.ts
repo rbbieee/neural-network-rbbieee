@@ -8,12 +8,18 @@
 
 import { activations, sigmoid, type ActivationName } from "./activations";
 
+export type OptimizerName = "sgd" | "momentum" | "adam";
+export type RegularizationName = "none" | "l1" | "l2";
+
 export interface NetworkConfig {
-  // Sizes of hidden layers, for example [4, 3] means two hidden layers
   hiddenLayers: number[];
   activation: ActivationName;
   learningRate: number;
   seed: number;
+  optimizer: OptimizerName;
+  regularization: RegularizationName;
+  regularizationRate: number;
+  batchSize: number;
 }
 
 export interface TrainingSample {
@@ -28,6 +34,13 @@ export interface NetworkState {
   layerSizes: number[]; // includes input (2) and output (1)
   weights: number[][][];
   biases: number[][];
+  
+  // Optimizer state buffers
+  mW: number[][][];
+  mB: number[][];
+  vW: number[][][];
+  vB: number[][];
+  t: number; // Adam timestep
 }
 
 // Simple deterministic random number generator (mulberry32).
@@ -49,6 +62,8 @@ export class NeuralNetwork {
   config: NetworkConfig;
   // Activations from the latest forward pass, kept for visualization
   lastActivations: number[][] = [];
+  // Gradients from the latest backward pass, kept for visualization
+  lastGradients: number[][][] = [];
 
   constructor(config: NetworkConfig) {
     this.config = config;
@@ -60,6 +75,10 @@ export class NeuralNetwork {
     const rand = mulberry32(config.seed);
     const weights: number[][][] = [];
     const biases: number[][] = [];
+    const mW: number[][][] = [];
+    const mB: number[][] = [];
+    const vW: number[][][] = [];
+    const vB: number[][] = [];
 
     for (let l = 1; l < layerSizes.length; l++) {
       const fanIn = layerSizes[l - 1];
@@ -67,23 +86,41 @@ export class NeuralNetwork {
       const scale = Math.sqrt(1 / fanIn);
       const layerW: number[][] = [];
       const layerB: number[] = [];
+      const layerMW: number[][] = [];
+      const layerMB: number[] = [];
+      const layerVW: number[][] = [];
+      const layerVB: number[] = [];
+
       for (let to = 0; to < layerSizes[l]; to++) {
-        const row: number[] = [];
+        const rowW: number[] = [];
+        const rowMW: number[] = [];
+        const rowVW: number[] = [];
         for (let from = 0; from < fanIn; from++) {
-          row.push((rand() * 2 - 1) * scale);
+          rowW.push((rand() * 2 - 1) * scale);
+          rowMW.push(0);
+          rowVW.push(0);
         }
-        layerW.push(row);
+        layerW.push(rowW);
         layerB.push(0);
+        layerMW.push(rowMW);
+        layerMB.push(0);
+        layerVW.push(rowVW);
+        layerVB.push(0);
       }
       weights.push(layerW);
       biases.push(layerB);
+      mW.push(layerMW);
+      mB.push(layerMB);
+      vW.push(layerVW);
+      vB.push(layerVB);
     }
-    return { layerSizes, weights, biases };
+    return { layerSizes, weights, biases, mW, mB, vW, vB, t: 0 };
   }
 
   reset() {
     this.state = NeuralNetwork.initialize(this.config);
     this.lastActivations = [];
+    this.lastGradients = [];
   }
 
   // Forward pass. Returns activations for every layer,
@@ -120,9 +157,9 @@ export class NeuralNetwork {
   // One step of mini batch gradient descent with backpropagation.
   // Returns the mean binary cross entropy loss over the batch.
   trainBatch(batch: TrainingSample[]): number {
-    const { weights, biases, layerSizes } = this.state;
+    const { weights, biases, layerSizes, mW, mB, vW, vB } = this.state;
     const act = activations[this.config.activation];
-    const lr = this.config.learningRate;
+    const { learningRate: lr, optimizer, regularization, regularizationRate: lambda } = this.config;
 
     // Accumulate gradients over the whole batch before applying them
     const gradW = weights.map((lw) => lw.map((row) => row.map(() => 0)));
@@ -138,20 +175,18 @@ export class NeuralNetwork {
       totalLoss -=
         sample.label * Math.log(p) + (1 - sample.label) * Math.log(1 - p);
 
-      // Backward pass. With sigmoid output and cross entropy loss the
-      // output delta simplifies to prediction minus target
+      // Backward pass
       let deltas: number[] = [out - sample.label];
 
       for (let l = weights.length - 1; l >= 0; l--) {
         const prevAct = all[l];
-        // Add this layer's contribution to the gradients
         for (let to = 0; to < layerSizes[l + 1]; to++) {
           gradB[l][to] += deltas[to];
           for (let from = 0; from < prevAct.length; from++) {
             gradW[l][to][from] += deltas[to] * prevAct[from];
           }
         }
-        // Propagate deltas to the previous layer, skip for the input
+        // Propagate deltas
         if (l > 0) {
           const nextDeltas: number[] = [];
           for (let from = 0; from < layerSizes[l]; from++) {
@@ -166,17 +201,68 @@ export class NeuralNetwork {
       }
     }
 
-    // Apply averaged gradients
     const n = batch.length;
+    let regLoss = 0;
+    
+    // Optimizers
+    this.state.t += 1;
+    const beta1 = 0.9;
+    const beta2 = 0.999;
+    const epsilon = 1e-8;
+
     for (let l = 0; l < weights.length; l++) {
       for (let to = 0; to < weights[l].length; to++) {
-        biases[l][to] -= (lr * gradB[l][to]) / n;
+        // Average gradient for bias
+        let gb = gradB[l][to] / n;
+        
         for (let from = 0; from < weights[l][to].length; from++) {
-          weights[l][to][from] -= (lr * gradW[l][to][from]) / n;
+          let gw = gradW[l][to][from] / n;
+          const w = weights[l][to][from];
+
+          // Regularization
+          if (regularization === "l2") {
+            regLoss += 0.5 * lambda * w * w;
+            gw += lambda * w;
+          } else if (regularization === "l1") {
+            regLoss += lambda * Math.abs(w);
+            gw += lambda * (w > 0 ? 1 : -1);
+          }
+
+          // Optimizer step for weight
+          if (optimizer === "adam") {
+            mW[l][to][from] = beta1 * mW[l][to][from] + (1 - beta1) * gw;
+            vW[l][to][from] = beta2 * vW[l][to][from] + (1 - beta2) * gw * gw;
+            const mHat = mW[l][to][from] / (1 - Math.pow(beta1, this.state.t));
+            const vHat = vW[l][to][from] / (1 - Math.pow(beta2, this.state.t));
+            weights[l][to][from] -= lr * mHat / (Math.sqrt(vHat) + epsilon);
+          } else if (optimizer === "momentum") {
+            mW[l][to][from] = beta1 * mW[l][to][from] - lr * gw;
+            weights[l][to][from] -= lr * gw - mW[l][to][from];
+          } else { // SGD
+            weights[l][to][from] -= lr * gw;
+          }
+        }
+
+        // Optimizer step for bias (no regularization on biases usually)
+        if (optimizer === "adam") {
+          mB[l][to] = beta1 * mB[l][to] + (1 - beta1) * gb;
+          vB[l][to] = beta2 * vB[l][to] + (1 - beta2) * gb * gb;
+          const mHat = mB[l][to] / (1 - Math.pow(beta1, this.state.t));
+          const vHat = vB[l][to] / (1 - Math.pow(beta2, this.state.t));
+          biases[l][to] -= lr * mHat / (Math.sqrt(vHat) + epsilon);
+        } else if (optimizer === "momentum") {
+          mB[l][to] = beta1 * mB[l][to] - lr * gb;
+          biases[l][to] -= lr * gb - mB[l][to];
+        } else { // SGD
+          biases[l][to] -= lr * gb;
         }
       }
     }
-    return totalLoss / n;
+    
+    // Store gradients for visualization (averaging by batch size)
+    this.lastGradients = gradW.map(layer => layer.map(node => node.map(g => g / n)));
+
+    return (totalLoss / n) + regLoss;
   }
 
   // Classification accuracy over a dataset, used for the stats readout

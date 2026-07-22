@@ -7,7 +7,6 @@ import { NeuralNetwork, type NetworkConfig, type TrainingSample } from "../nn/ne
 import { generateDataset, type DatasetName } from "../nn/datasets";
 
 const EPOCHS_PER_FRAME = 4;
-const BATCH_SIZE = 20;
 const MAX_LOSS_POINTS = 300;
 
 export interface TrainingStats {
@@ -85,8 +84,8 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
         const j = Math.floor(Math.random() * (i + 1));
         [idx[i], idx[j]] = [idx[j], idx[i]];
       }
-      for (let b = 0; b < idx.length; b += BATCH_SIZE) {
-        const batch = idx.slice(b, b + BATCH_SIZE).map((i) => data[i]);
+      for (let b = 0; b < idx.length; b += net.config.batchSize) {
+        const batch = idx.slice(b, b + net.config.batchSize).map((i) => data[i]);
         loss = net.trainBatch(batch);
       }
     }
@@ -118,6 +117,12 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     rebuild(networkRef.current.config);
   }, [rebuild]);
 
+  const addSample = useCallback((x: number, y: number, label: 0 | 1) => {
+    dataRef.current.push({ x, y, label });
+    // If we're not running, force a re-render so the new point shows up
+    if (!running) setTick((t) => t + 1);
+  }, [running]);
+
   return {
     network: networkRef.current,
     data: dataRef.current,
@@ -130,5 +135,6 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     changeDataset,
     step: () => runEpochs(1),
     reset,
+    addSample,
   };
 }

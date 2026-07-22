@@ -39,6 +39,13 @@ export function NetworkGraph({ network, probeActivations }: Props) {
     for (const row of lw)
       for (const w of row) maxW = Math.max(maxW, Math.abs(w));
 
+  let maxG = 0.000001;
+  if (network.lastGradients && network.lastGradients.length > 0) {
+    for (const lg of network.lastGradients)
+      for (const row of lg)
+        for (const g of row) maxG = Math.max(maxG, Math.abs(g));
+  }
+
   // Only show live numbers when the user has explicitly probed a point.
   // network.lastActivations gets overwritten on every heatmap pixel pass,
   // so falling back to it here would show noise from wherever the last
@@ -59,17 +66,34 @@ export function NetworkGraph({ network, probeActivations }: Props) {
             const a = positions[l][from];
             const b = positions[l + 1][to];
             const strength = Math.abs(w) / maxW;
+            const grad = network.lastGradients && network.lastGradients.length > 0
+              ? Math.abs(network.lastGradients[l][to][from])
+              : 0;
+            const gradStrength = grad / maxG;
+            // Only animate gradients that are relatively active (top 10%)
+            const showGradient = gradStrength > 0.1;
+
             return (
-              <line
-                key={`e-${l}-${to}-${from}`}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                stroke={w >= 0 ? "var(--pos)" : "var(--neg)"}
-                strokeWidth={0.5 + strength * 4}
-                strokeOpacity={0.25 + strength * 0.65}
-              />
+              <g key={`e-${l}-${to}-${from}`}>
+                <line
+                  x1={a.x}
+                  y1={a.y}
+                  x2={b.x}
+                  y2={b.y}
+                  stroke={w >= 0 ? "var(--pos)" : "var(--neg)"}
+                  strokeWidth={0.5 + strength * 4}
+                  strokeOpacity={0.25 + strength * 0.65}
+                />
+                {showGradient && (
+                  <circle r={2 + gradStrength * 2} fill="#ffdd00" opacity={0.6 + gradStrength * 0.4}>
+                    <animateMotion
+                      dur={`${Math.max(0.2, 1.5 - gradStrength)}s`}
+                      repeatCount="indefinite"
+                      path={`M${b.x},${b.y} L${a.x},${a.y}`}
+                    />
+                  </circle>
+                )}
+              </g>
             );
           })
         )

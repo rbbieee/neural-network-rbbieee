@@ -4,7 +4,7 @@
 
 import type { TrainingSample } from "./network";
 
-export type DatasetName = "xor" | "circles" | "spiral" | "blobs";
+export type DatasetName = "xor" | "circles" | "spiral" | "blobs" | "custom";
 
 // Same seeded RNG idea as the network, so datasets are reproducible
 function mulberry32(seed: number) {
@@ -25,6 +25,7 @@ export const datasetLabels: Record<DatasetName, string> = {
   circles: "Concentric circles",
   spiral: "Two spirals",
   blobs: "Gaussian blobs",
+  custom: "Custom (Draw your own)",
 };
 
 export function generateDataset(
@@ -86,6 +87,10 @@ export function generateDataset(
           label,
         });
       }
+      break;
+    }
+    case "custom": {
+      // Empty array, user will click to add points
       break;
     }
   }

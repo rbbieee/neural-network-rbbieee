@@ -11,12 +11,17 @@ import { LossChart } from "./components/LossChart";
 import { ControlPanel } from "./components/ControlPanel";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import { InfoTooltip } from "./components/InfoTooltip";
+import { type NetworkConfig } from "./nn/network";
 
-const INITIAL_CONFIG = {
+const INITIAL_CONFIG: NetworkConfig = {
   hiddenLayers: [4, 4],
-  activation: "tanh" as const,
+  activation: "tanh",
   learningRate: 0.3,
   seed: 1337,
+  optimizer: "sgd",
+  regularization: "none",
+  regularizationRate: 0.001,
+  batchSize: 20,
 };
 
 export default function App() {
@@ -32,6 +37,26 @@ export default function App() {
       document.documentElement.removeAttribute("data-theme");
     }
   }, [theme]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is interacting with an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+      
+      if (e.code === "Space") {
+        e.preventDefault();
+        t.setRunning(!t.running);
+      } else if (e.code === "KeyS" && !t.running) {
+        t.step();
+      } else if (e.code === "KeyR") {
+        setProbe(null);
+        t.reset();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [t.running, t.setRunning, t.step, t.reset]);
 
   const handleProbe = (x: number, y: number) => {
     // Run a forward pass on the clicked point and keep the
@@ -122,7 +147,9 @@ export default function App() {
               network={t.network}
               data={t.data}
               epoch={t.stats.epoch}
+              datasetName={t.datasetName}
               onProbe={handleProbe}
+              onAddPoint={t.addSample}
             />
             <div className="stats" data-tour="stats">
               <span>

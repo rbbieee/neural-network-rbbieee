@@ -7,11 +7,15 @@
 import { useEffect, useRef, type MouseEvent } from "react";
 import type { NeuralNetwork, TrainingSample } from "../nn/network";
 
+import type { DatasetName } from "../nn/datasets";
+
 interface Props {
   network: NeuralNetwork;
   data: TrainingSample[];
   epoch: number;
+  datasetName: DatasetName;
   onProbe: (x: number, y: number) => void;
+  onAddPoint?: (x: number, y: number, label: 0 | 1) => void;
 }
 
 const SIZE = 360;
@@ -21,7 +25,7 @@ const GRID = 60; // resolution of the heatmap, 60x60 forward passes
 const toPx = (v: number) => ((v + 1) / 2) * SIZE;
 const toData = (px: number) => (px / SIZE) * 2 - 1;
 
-export function DecisionBoundary({ network, data, epoch, onProbe }: Props) {
+export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, onAddPoint }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -81,7 +85,21 @@ export function DecisionBoundary({ network, data, epoch, onProbe }: Props) {
     const scale = SIZE / rect.width;
     const x = toData((e.clientX - rect.left) * scale);
     const y = toData((e.clientY - rect.top) * scale);
-    onProbe(x, y);
+    
+    if (datasetName === "custom" && onAddPoint) {
+      // Left click = blue (1), Shift+click or right click = orange (0)
+      const label = e.shiftKey || e.button === 2 ? 0 : 1;
+      onAddPoint(x, y, label);
+    } else {
+      onProbe(x, y);
+    }
+  };
+
+  const handleContextMenu = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (datasetName === "custom") {
+      e.preventDefault(); // Prevent context menu
+      handleClick(e);
+    }
   };
 
   return (
@@ -91,7 +109,8 @@ export function DecisionBoundary({ network, data, epoch, onProbe }: Props) {
       height={SIZE}
       className="boundary-canvas"
       onClick={handleClick}
-      aria-label="Decision boundary heatmap, click to probe a point"
+      onContextMenu={handleContextMenu}
+      aria-label="Decision boundary heatmap, click to probe a point or add points in custom mode"
     />
   );
 }
