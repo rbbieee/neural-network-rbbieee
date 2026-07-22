@@ -114,14 +114,18 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
 
   const reset = useCallback(() => {
     setRunning(false);
+    if (datasetName === "custom") {
+      dataRef.current = [];
+    }
     rebuild(networkRef.current.config);
-  }, [rebuild]);
+  }, [rebuild, datasetName]);
 
   const addSample = useCallback((x: number, y: number, label: 0 | 1) => {
-    dataRef.current.push({ x, y, label });
-    // If we're not running, force a re-render so the new point shows up
-    if (!running) setTick((t) => t + 1);
-  }, [running]);
+    // Reassign with a new array so React detects the reference change
+    dataRef.current = [...dataRef.current, { x, y, label }];
+    // Force a re-render so the new point shows up immediately
+    setTick((t) => t + 1);
+  }, []);
 
   return {
     network: networkRef.current,
