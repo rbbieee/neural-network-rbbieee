@@ -746,8 +746,3 @@ code {
 .custom-tools .btn {
   background: transparent;
 }
-
-.custom-tools .btn.active {
-  background: currentColor;
-  color: var(--window) !important;
-}

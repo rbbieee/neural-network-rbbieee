@@ -118,14 +118,22 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
         <div className="custom-tools">
           <span>Paint:</span>
           <button 
-            className={`btn tiny ${paintClass === 1 ? 'active' : ''}`}
+            className="btn tiny"
             onClick={() => setPaintClass(1)}
-            style={{ color: "var(--pos)", borderColor: paintClass === 1 ? "var(--pos)" : "" }}
+            style={{ 
+              color: paintClass === 1 ? "var(--window)" : "var(--pos)",
+              backgroundColor: paintClass === 1 ? "var(--pos)" : "transparent",
+              borderColor: "var(--pos)"
+            }}
           >Blue</button>
           <button 
-            className={`btn tiny ${paintClass === 0 ? 'active' : ''}`}
+            className="btn tiny"
             onClick={() => setPaintClass(0)}
-            style={{ color: "var(--neg)", borderColor: paintClass === 0 ? "var(--neg)" : "" }}
+            style={{ 
+              color: paintClass === 0 ? "var(--window)" : "var(--neg)",
+              backgroundColor: paintClass === 0 ? "var(--neg)" : "transparent",
+              borderColor: "var(--neg)"
+            }}
           >Orange</button>
         </div>
       )}
