@@ -724,3 +724,30 @@ code {
     animation: none !important;
   }
 }
+
+.custom-tools {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--card);
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  z-index: 10;
+}
+
+.custom-tools .btn {
+  background: transparent;
+}
+
+.custom-tools .btn.active {
+  background: currentColor;
+  color: var(--window) !important;
+}

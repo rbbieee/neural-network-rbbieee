@@ -4,7 +4,7 @@
 // Clicking anywhere probes the network with that point and lights up
 // the network graph with the resulting activations.
 
-import { useEffect, useRef, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import type { NeuralNetwork, TrainingSample } from "../nn/network";
 
 import type { DatasetName } from "../nn/datasets";
@@ -27,6 +27,7 @@ const toData = (px: number) => (px / SIZE) * 2 - 1;
 
 export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, onAddPoint }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [paintClass, setPaintClass] = useState<0 | 1>(1);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -87,8 +88,8 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
     const y = toData((e.clientY - rect.top) * scale);
     
     if (datasetName === "custom" && onAddPoint) {
-      // Left click = blue (1), Shift+click or right click = orange (0)
-      const label = e.shiftKey || e.button === 2 ? 0 : 1;
+      // Shift+click or right-click forces orange (0), otherwise use selected paintClass
+      const label = e.shiftKey || e.button === 2 ? 0 : paintClass;
       onAddPoint(x, y, label);
     } else {
       onProbe(x, y);
@@ -103,14 +104,31 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
   };
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={SIZE}
-      height={SIZE}
-      className="boundary-canvas"
-      onClick={handleClick}
-      onContextMenu={handleContextMenu}
-      aria-label="Decision boundary heatmap, click to probe a point or add points in custom mode"
-    />
+    <div style={{ position: "relative", width: SIZE, height: SIZE }}>
+      <canvas
+        ref={canvasRef}
+        width={SIZE}
+        height={SIZE}
+        className="boundary-canvas"
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        aria-label="Decision boundary heatmap, click to probe a point or add points in custom mode"
+      />
+      {datasetName === "custom" && (
+        <div className="custom-tools">
+          <span>Paint:</span>
+          <button 
+            className={`btn tiny ${paintClass === 1 ? 'active' : ''}`}
+            onClick={() => setPaintClass(1)}
+            style={{ color: "var(--pos)", borderColor: paintClass === 1 ? "var(--pos)" : "" }}
+          >Blue</button>
+          <button 
+            className={`btn tiny ${paintClass === 0 ? 'active' : ''}`}
+            onClick={() => setPaintClass(0)}
+            style={{ color: "var(--neg)", borderColor: paintClass === 0 ? "var(--neg)" : "" }}
+          >Orange</button>
+        </div>
+      )}
+    </div>
   );
 }
