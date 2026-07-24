@@ -54,8 +54,8 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
         const confidence = Math.abs(t - 0.5) * 2;
         // Get styles from CSS variables so they update with theme
         const style = getComputedStyle(document.documentElement);
-        const colorPos = style.getPropertyValue("--pos").trim() || "#0071e3";
-        const colorNeg = style.getPropertyValue("--neg").trim() || "#ff9500";
+        const colorPos = style.getPropertyValue("--pos").trim() || "#ef4444";
+        const colorNeg = style.getPropertyValue("--neg").trim() || "#3f3f46";
         
         ctx.fillStyle = t >= 0.5 ? colorPos : colorNeg;
         ctx.globalAlpha = 0.06 + confidence * 0.5;
@@ -64,22 +64,31 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
     }
     ctx.globalAlpha = 1;
 
-    // Draw the training points on top
+    // Draw the training (solid) and test (hollow ring) points on top
     const style = getComputedStyle(document.documentElement);
-    const colorPos = style.getPropertyValue("--pos").trim() || "#0071e3";
-    const colorNeg = style.getPropertyValue("--neg").trim() || "#ff9500";
+    const colorPos = style.getPropertyValue("--pos").trim() || "#ef4444";
+    const colorNeg = style.getPropertyValue("--neg").trim() || "#3f3f46";
     const colorWindow = style.getPropertyValue("--window").trim() || "#ffffff";
 
-    for (const s of data) {
+    data.forEach((s, idx) => {
+      const isTest = idx % 5 === 0 && datasetName !== "custom";
       ctx.beginPath();
-      ctx.arc(toPx(s.x), toPx(s.y), 4, 0, Math.PI * 2);
-      ctx.fillStyle = s.label === 1 ? colorPos : colorNeg;
-      ctx.fill();
-      ctx.strokeStyle = colorWindow;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
-  }, [network, data, epoch]);
+      ctx.arc(toPx(s.x), toPx(s.y), isTest ? 4.5 : 4, 0, Math.PI * 2);
+      
+      if (isTest) {
+        ctx.fillStyle = "transparent";
+        ctx.strokeStyle = s.label === 1 ? colorPos : colorNeg;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = s.label === 1 ? colorPos : colorNeg;
+        ctx.fill();
+        ctx.strokeStyle = colorWindow;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    });
+  }, [network, data, epoch, datasetName]);
 
   const handleClick = (e: MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -121,20 +130,20 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
             className="btn tiny"
             onClick={() => setPaintClass(1)}
             style={{ 
-              color: paintClass === 1 ? "var(--window)" : "var(--pos)",
+              color: paintClass === 1 ? "#ffffff" : "var(--pos)",
               backgroundColor: paintClass === 1 ? "var(--pos)" : "transparent",
               borderColor: "var(--pos)"
             }}
-          >Blue</button>
+          >Red</button>
           <button 
             className="btn tiny"
             onClick={() => setPaintClass(0)}
             style={{ 
-              color: paintClass === 0 ? "var(--window)" : "var(--neg)",
+              color: paintClass === 0 ? "#ffffff" : "var(--neg)",
               backgroundColor: paintClass === 0 ? "var(--neg)" : "transparent",
               borderColor: "var(--neg)"
             }}
-          >Orange</button>
+          >Dark Gray</button>
         </div>
       )}
     </div>
