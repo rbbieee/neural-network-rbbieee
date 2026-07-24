@@ -12,6 +12,7 @@ import { ControlPanel } from "./components/ControlPanel";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import { InfoTooltip } from "./components/InfoTooltip";
 import { PresetLabsBar } from "./components/PresetLabsBar";
+import { MathPanel } from "./components/MathPanel";
 import { soundManager } from "./utils/audio";
 import { type NetworkConfig } from "./nn/network";
 
@@ -177,6 +178,8 @@ export default function App() {
             <LossChart history={t.stats.lossHistory} testHistory={t.stats.testLossHistory} />
           </section>
         </div>
+
+        <MathPanel trace={t.lastTrace} />
 
         <footer className="footer">
           <p>

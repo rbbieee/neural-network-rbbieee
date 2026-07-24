@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NeuralNetwork, type NetworkConfig, type TrainingSample } from "../nn/network";
 import { generateDataset, type DatasetName } from "../nn/datasets";
+import { traceStep, type StepTrace } from "../nn/trace";
 
 const EPOCHS_PER_FRAME = 4;
 const MAX_LOSS_POINTS = 300;
@@ -35,6 +36,7 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   // A counter that forces re renders after each training frame,
   // since the network object itself is mutated in place for speed
   const [, setTick] = useState(0);
+  const [lastTrace, setLastTrace] = useState<StepTrace | null>(null);
 
   const networkRef = useRef(new NeuralNetwork(initialConfig));
   const dataRef = useRef<TrainingSample[]>(generateDataset(initialDataset));
@@ -151,6 +153,7 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
 
   const reset = useCallback(() => {
     setRunning(false);
+    setLastTrace(null);
     if (datasetName === "custom") {
       dataRef.current = [];
     }
@@ -164,6 +167,22 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     setTick((t) => t + 1);
   }, []);
 
+  // Run a single step with trace capture
+  const stepWithTrace = useCallback(() => {
+    const net = networkRef.current;
+    const fullData = dataRef.current;
+    if (fullData.length === 0) return;
+
+    // Pick a training sample to trace (first one in the shuffled data)
+    const trainData = fullData.filter((_, i) => i % 5 !== 0);
+    if (trainData.length > 0) {
+      const traceSample = trainData[Math.floor(Math.random() * trainData.length)];
+      setLastTrace(traceStep(net, traceSample));
+    }
+
+    runEpochs(1);
+  }, [runEpochs]);
+
   return {
     network: networkRef.current,
     data: dataRef.current,
@@ -171,10 +190,11 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     datasetName,
     running,
     stats,
+    lastTrace,
     setRunning,
     updateConfig,
     changeDataset,
-    step: () => runEpochs(1),
+    step: stepWithTrace,
     reset,
     addSample,
   };
