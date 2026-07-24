@@ -5,6 +5,7 @@
 
 import { useMemo } from "react";
 import type { NeuralNetwork } from "../nn/network";
+import { ALL_FEATURES } from "../nn/features";
 
 interface Props {
   network: NeuralNetwork;
@@ -103,8 +104,17 @@ export function NetworkGraph({ network, probeActivations }: Props) {
         layer.map((p, i) => {
           const a = acts?.[l]?.[i];
           const glow = a === undefined ? 0 : Math.min(Math.abs(a), 1);
+          
+          let nodeLabel = "";
+          if (l === 0) {
+            const featId = network.config.inputs?.[i] || "x1";
+            const featInfo = ALL_FEATURES.find((f) => f.id === featId);
+            nodeLabel = featInfo ? featInfo.label : featId;
+          }
+
           return (
-            <g key={`n-${l}-${i}`}>
+            <g key={`n-${l}-${i}`} className="neuron-group">
+              <title>{l === 0 ? `Input Feature: ${nodeLabel}` : l === positions.length - 1 ? `Output Neuron` : `Layer ${l} Neuron ${i + 1}`}</title>
               <circle
                 cx={p.x}
                 cy={p.y}
@@ -112,11 +122,15 @@ export function NetworkGraph({ network, probeActivations }: Props) {
                 className="neuron"
                 style={{ fillOpacity: 0.25 + glow * 0.75 }}
               />
-              {a !== undefined && (
+              {l === 0 ? (
+                <text x={p.x} y={p.y + 3.5} className="neuron-value" style={{ fontWeight: 600, fontSize: 10 }}>
+                  {nodeLabel}
+                </text>
+              ) : a !== undefined ? (
                 <text x={p.x} y={p.y + 3.5} className="neuron-value">
                   {a.toFixed(1)}
                 </text>
-              )}
+              ) : null}
             </g>
           );
         })

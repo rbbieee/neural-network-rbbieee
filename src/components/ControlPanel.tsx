@@ -6,6 +6,7 @@ import type { NetworkConfig } from "../nn/network";
 import type { OptimizerName, RegularizationName } from "../nn/network";
 import type { ActivationName } from "../nn/activations";
 import { datasetLabels, type DatasetName } from "../nn/datasets";
+import { ALL_FEATURES, type FeatureId } from "../nn/features";
 
 interface Props {
   config: NetworkConfig;
@@ -45,8 +46,20 @@ export function ControlPanel({
   };
 
   const removeLayer = () => {
-    if (layers.length > 1)
+    if (layers.length > 0)
       onConfigChange({ hiddenLayers: layers.slice(0, -1) });
+  };
+
+  const toggleFeature = (featId: FeatureId) => {
+    const current = config.inputs || ["x1", "x2"];
+    let next: FeatureId[];
+    if (current.includes(featId)) {
+      if (current.length <= 1) return; // Must have at least 1 feature
+      next = current.filter((f) => f !== featId);
+    } else {
+      next = [...current, featId];
+    }
+    onConfigChange({ inputs: next });
   };
 
   return (
@@ -79,6 +92,25 @@ export function ControlPanel({
           ))}
         </select>
       </label>
+
+      <div className="field" data-tour="features">
+        <span>Features (Inputs)</span>
+        <div className="features-grid">
+          {ALL_FEATURES.map((feat) => {
+            const active = (config.inputs || ["x1", "x2"]).includes(feat.id);
+            return (
+              <button
+                key={feat.id}
+                type="button"
+                className={`feature-chip ${active ? "active" : ""}`}
+                onClick={() => toggleFeature(feat.id)}
+              >
+                {feat.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div data-tour="architecture">
         <label className="field">
@@ -175,8 +207,8 @@ export function ControlPanel({
 
         <div className="field">
           <span>
-            Hidden layers
-            <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 1}>
+            Hidden layers ({layers.length})
+            <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 0}>
               -
             </button>
             <button className="btn tiny" onClick={addLayer} disabled={layers.length >= MAX_LAYERS}>
