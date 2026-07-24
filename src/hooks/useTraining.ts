@@ -12,8 +12,11 @@ const MAX_LOSS_POINTS = 300;
 export interface TrainingStats {
   epoch: number;
   loss: number;
+  testLoss: number;
   accuracy: number;
+  testAccuracy: number;
   lossHistory: number[];
+  testLossHistory: number[];
 }
 
 export function useTraining(initialConfig: NetworkConfig, initialDataset: DatasetName) {
@@ -23,8 +26,11 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   const [stats, setStats] = useState<TrainingStats>({
     epoch: 0,
     loss: 0,
+    testLoss: 0,
     accuracy: 0,
+    testAccuracy: 0,
     lossHistory: [],
+    testLossHistory: [],
   });
   // A counter that forces re renders after each training frame,
   // since the network object itself is mutated in place for speed
@@ -38,7 +44,15 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   // Learning rate changes alone do not need a rebuild.
   const rebuild = useCallback((next: NetworkConfig) => {
     networkRef.current = new NeuralNetwork(next);
-    setStats({ epoch: 0, loss: 0, accuracy: 0, lossHistory: [] });
+    setStats({
+      epoch: 0,
+      loss: 0,
+      testLoss: 0,
+      accuracy: 0,
+      testAccuracy: 0,
+      lossHistory: [],
+      testLossHistory: [],
+    });
     setTick((t) => t + 1);
   }, []);
 
@@ -48,6 +62,7 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
         const next = { ...prev, ...patch };
         const structural =
           patch.hiddenLayers !== undefined ||
+          patch.inputs !== undefined ||
           patch.activation !== undefined ||
           patch.seed !== undefined;
         if (structural) {
@@ -75,27 +90,49 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   // Run a few epochs of mini batch training
   const runEpochs = useCallback((count: number) => {
     const net = networkRef.current;
-    const data = dataRef.current;
+    const fullData = dataRef.current;
+    if (fullData.length === 0) return;
+
+    // 80% Train, 20% Test split (interleaved so spatial distribution is uniform)
+    const trainData = fullData.filter((_, i) => i % 5 !== 0);
+    const testData = fullData.filter((_, i) => i % 5 === 0);
+
     let loss = 0;
     for (let e = 0; e < count; e++) {
-      // Shuffle indices each epoch for better convergence
-      const idx = data.map((_, i) => i);
+      const idx = trainData.map((_, i) => i);
       for (let i = idx.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [idx[i], idx[j]] = [idx[j], idx[i]];
       }
       for (let b = 0; b < idx.length; b += net.config.batchSize) {
-        const batch = idx.slice(b, b + net.config.batchSize).map((i) => data[i]);
+        const batch = idx.slice(b, b + net.config.batchSize).map((i) => trainData[i]);
         loss = net.trainBatch(batch);
       }
     }
+
+    // Evaluate test loss & accuracy
+    let evalTestLoss = 0;
+    if (testData.length > 0) {
+      for (const s of testData) {
+        const p = Math.min(Math.max(net.predict(s.x, s.y), 1e-7), 1 - 1e-7);
+        evalTestLoss -= s.label * Math.log(p) + (1 - s.label) * Math.log(1 - p);
+      }
+      evalTestLoss /= testData.length;
+    } else {
+      evalTestLoss = loss;
+    }
+
     setStats((prev) => {
       const history = [...prev.lossHistory, loss].slice(-MAX_LOSS_POINTS);
+      const testHistory = [...prev.testLossHistory, evalTestLoss].slice(-MAX_LOSS_POINTS);
       return {
         epoch: prev.epoch + count,
         loss,
-        accuracy: net.accuracy(data),
+        testLoss: evalTestLoss,
+        accuracy: net.accuracy(trainData),
+        testAccuracy: testData.length > 0 ? net.accuracy(testData) : net.accuracy(trainData),
         lossHistory: history,
+        testLossHistory: testHistory,
       };
     });
     setTick((t) => t + 1);

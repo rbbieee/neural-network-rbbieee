@@ -7,11 +7,13 @@
 // boundary directly onto a canvas.
 
 import { activations, sigmoid, type ActivationName } from "./activations";
+import { type FeatureId, extractFeatures, DEFAULT_FEATURES } from "./features";
 
 export type OptimizerName = "sgd" | "momentum" | "adam";
 export type RegularizationName = "none" | "l1" | "l2";
 
 export interface NetworkConfig {
+  inputs: FeatureId[];
   hiddenLayers: number[];
   activation: ActivationName;
   learningRate: number;
@@ -71,7 +73,8 @@ export class NeuralNetwork {
   }
 
   static initialize(config: NetworkConfig): NetworkState {
-    const layerSizes = [2, ...config.hiddenLayers, 1];
+    const inputCount = (config.inputs && config.inputs.length > 0) ? config.inputs.length : 2;
+    const layerSizes = [inputCount, ...config.hiddenLayers, 1];
     const rand = mulberry32(config.seed);
     const weights: number[][][] = [];
     const biases: number[][] = [];
@@ -124,11 +127,13 @@ export class NeuralNetwork {
   }
 
   // Forward pass. Returns activations for every layer,
-  // where index 0 is the input itself.
+  // where index 0 is the input features.
   forward(x: number, y: number): number[][] {
     const { weights, biases, layerSizes } = this.state;
     const act = activations[this.config.activation];
-    const all: number[][] = [[x, y]];
+    const activeInputs = (this.config.inputs && this.config.inputs.length > 0) ? this.config.inputs : DEFAULT_FEATURES;
+    const feats = extractFeatures(x, y, activeInputs);
+    const all: number[][] = [feats];
 
     for (let l = 0; l < weights.length; l++) {
       const prev = all[l];
@@ -236,8 +241,8 @@ export class NeuralNetwork {
             const vHat = vW[l][to][from] / (1 - Math.pow(beta2, this.state.t));
             weights[l][to][from] -= lr * mHat / (Math.sqrt(vHat) + epsilon);
           } else if (optimizer === "momentum") {
-            mW[l][to][from] = beta1 * mW[l][to][from] - lr * gw;
-            weights[l][to][from] -= lr * gw - mW[l][to][from];
+            mW[l][to][from] = beta1 * mW[l][to][from] + lr * gw;
+            weights[l][to][from] -= mW[l][to][from];
           } else { // SGD
             weights[l][to][from] -= lr * gw;
           }
@@ -251,8 +256,8 @@ export class NeuralNetwork {
           const vHat = vB[l][to] / (1 - Math.pow(beta2, this.state.t));
           biases[l][to] -= lr * mHat / (Math.sqrt(vHat) + epsilon);
         } else if (optimizer === "momentum") {
-          mB[l][to] = beta1 * mB[l][to] - lr * gb;
-          biases[l][to] -= lr * gb - mB[l][to];
+          mB[l][to] = beta1 * mB[l][to] + lr * gb;
+          biases[l][to] -= mB[l][to];
         } else { // SGD
           biases[l][to] -= lr * gb;
         }
