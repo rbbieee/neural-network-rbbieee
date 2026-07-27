@@ -7,7 +7,6 @@ import { NeuralNetwork, type NetworkConfig, type TrainingSample } from "../nn/ne
 import { generateDataset, type DatasetName } from "../nn/datasets";
 import { traceStep, type StepTrace } from "../nn/trace";
 
-const EPOCHS_PER_FRAME = 4;
 const MAX_LOSS_POINTS = 300;
 
 export interface TrainingStats {
@@ -18,6 +17,10 @@ export interface TrainingStats {
   testAccuracy: number;
   lossHistory: number[];
   testLossHistory: number[];
+  confusion: { tp: number; fp: number; fn: number; tn: number };
+  precision: number;
+  recall: number;
+  f1: number;
 }
 
 export function useTraining(initialConfig: NetworkConfig, initialDataset: DatasetName) {
@@ -32,14 +35,20 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     testAccuracy: 0,
     lossHistory: [],
     testLossHistory: [],
+    confusion: { tp: 0, fp: 0, fn: 0, tn: 0 },
+    precision: 0,
+    recall: 0,
+    f1: 0,
   });
   // A counter that forces re renders after each training frame,
   // since the network object itself is mutated in place for speed
   const [, setTick] = useState(0);
   const [lastTrace, setLastTrace] = useState<StepTrace | null>(null);
+  const [noiseLevel, setNoiseLevel] = useState(0.5);
+  const [epochsPerFrame, setEpochsPerFrame] = useState(4);
 
   const networkRef = useRef(new NeuralNetwork(initialConfig));
-  const dataRef = useRef<TrainingSample[]>(generateDataset(initialDataset));
+  const dataRef = useRef<TrainingSample[]>(generateDataset(initialDataset, config.seed, noiseLevel));
   const rafRef = useRef(0);
 
   // Rebuild the network whenever architecture settings change.
@@ -54,6 +63,10 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
       testAccuracy: 0,
       lossHistory: [],
       testLossHistory: [],
+      confusion: { tp: 0, fp: 0, fn: 0, tn: 0 },
+      precision: 0,
+      recall: 0,
+      f1: 0,
     });
     setTick((t) => t + 1);
   }, []);
@@ -82,11 +95,21 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   const changeDataset = useCallback(
     (name: DatasetName) => {
       setDatasetName(name);
-      dataRef.current = generateDataset(name);
+      dataRef.current = generateDataset(name, networkRef.current.config.seed, noiseLevel);
       setRunning(false);
       rebuild(networkRef.current.config);
     },
-    [rebuild]
+    [rebuild, noiseLevel]
+  );
+
+  const changeNoise = useCallback(
+    (level: number) => {
+      setNoiseLevel(level);
+      dataRef.current = generateDataset(datasetName, networkRef.current.config.seed, level);
+      setRunning(false);
+      rebuild(networkRef.current.config);
+    },
+    [datasetName, rebuild]
   );
 
   // Run a few epochs of mini batch training
@@ -114,15 +137,28 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
 
     // Evaluate test loss & accuracy
     let evalTestLoss = 0;
+    let tp = 0, fp = 0, fn = 0, tn = 0;
+    
     if (testData.length > 0) {
       for (const s of testData) {
-        const p = Math.min(Math.max(net.predict(s.x, s.y), 1e-7), 1 - 1e-7);
+        const out = net.predict(s.x, s.y);
+        const p = Math.min(Math.max(out, 1e-7), 1 - 1e-7);
         evalTestLoss -= s.label * Math.log(p) + (1 - s.label) * Math.log(1 - p);
+        
+        const predLabel = out >= 0.5 ? 1 : 0;
+        if (s.label === 1 && predLabel === 1) tp++;
+        else if (s.label === 0 && predLabel === 1) fp++;
+        else if (s.label === 1 && predLabel === 0) fn++;
+        else if (s.label === 0 && predLabel === 0) tn++;
       }
       evalTestLoss /= testData.length;
     } else {
       evalTestLoss = loss;
     }
+    
+    const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+    const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+    const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
 
     setStats((prev) => {
       const history = [...prev.lossHistory, loss].slice(-MAX_LOSS_POINTS);
@@ -135,6 +171,10 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
         testAccuracy: testData.length > 0 ? net.accuracy(testData) : net.accuracy(trainData),
         lossHistory: history,
         testLossHistory: testHistory,
+        confusion: { tp, fp, fn, tn },
+        precision,
+        recall,
+        f1,
       };
     });
     setTick((t) => t + 1);
@@ -144,12 +184,12 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
   useEffect(() => {
     if (!running) return;
     const loop = () => {
-      runEpochs(EPOCHS_PER_FRAME);
+      runEpochs(epochsPerFrame);
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [running, runEpochs]);
+  }, [running, runEpochs, epochsPerFrame]);
 
   const reset = useCallback(() => {
     setRunning(false);
@@ -191,9 +231,13 @@ export function useTraining(initialConfig: NetworkConfig, initialDataset: Datase
     running,
     stats,
     lastTrace,
+    noiseLevel,
+    epochsPerFrame,
     setRunning,
+    setEpochsPerFrame,
     updateConfig,
     changeDataset,
+    changeNoise,
     step: stepWithTrace,
     reset,
     addSample,

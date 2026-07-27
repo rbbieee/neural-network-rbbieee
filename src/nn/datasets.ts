@@ -30,10 +30,11 @@ export const datasetLabels: Record<DatasetName, string> = {
 
 export function generateDataset(
   name: DatasetName,
-  seed = 42
+  seed = 42,
+  noiseLevel = 0.5
 ): TrainingSample[] {
   const rand = mulberry32(seed);
-  const noise = () => (rand() - 0.5) * 0.15;
+  const noise = () => (rand() - 0.5) * 0.3 * noiseLevel;
   const samples: TrainingSample[] = [];
 
   switch (name) {

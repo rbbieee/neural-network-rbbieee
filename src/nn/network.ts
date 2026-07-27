@@ -11,6 +11,7 @@ import { type FeatureId, extractFeatures, DEFAULT_FEATURES } from "./features";
 
 export type OptimizerName = "sgd" | "momentum" | "adam";
 export type RegularizationName = "none" | "l1" | "l2";
+export type WeightInitName = "xavier" | "he" | "zero";
 
 export interface NetworkConfig {
   inputs: FeatureId[];
@@ -22,6 +23,8 @@ export interface NetworkConfig {
   regularization: RegularizationName;
   regularizationRate: number;
   batchSize: number;
+  weightInit: WeightInitName;
+  dropoutRate: number;
 }
 
 export interface TrainingSample {
@@ -85,8 +88,13 @@ export class NeuralNetwork {
 
     for (let l = 1; l < layerSizes.length; l++) {
       const fanIn = layerSizes[l - 1];
-      // Xavier style scaling keeps early signals in a healthy range
-      const scale = Math.sqrt(1 / fanIn);
+      let scale = 0;
+      if (config.weightInit === "xavier") {
+        scale = Math.sqrt(1 / fanIn);
+      } else if (config.weightInit === "he") {
+        scale = Math.sqrt(2 / fanIn);
+      } // zero init remains 0
+
       const layerW: number[][] = [];
       const layerB: number[] = [];
       const layerMW: number[][] = [];
@@ -128,9 +136,12 @@ export class NeuralNetwork {
 
   // Forward pass. Returns activations for every layer,
   // where index 0 is the input features.
-  forward(x: number, y: number): number[][] {
+  // When training is true, applies dropout to hidden layers.
+  forward(x: number, y: number, isTraining: boolean = false): number[][] {
     const { weights, biases, layerSizes } = this.state;
     const act = activations[this.config.activation];
+    const dropoutRate = this.config.dropoutRate || 0;
+    const useDropout = isTraining && dropoutRate > 0 && dropoutRate < 1;
     const activeInputs = (this.config.inputs && this.config.inputs.length > 0) ? this.config.inputs : DEFAULT_FEATURES;
     const feats = extractFeatures(x, y, activeInputs);
     const all: number[][] = [feats];
@@ -146,7 +157,19 @@ export class NeuralNetwork {
         }
         // Hidden layers use the chosen activation,
         // the output uses sigmoid so it reads as a probability
-        layer.push(isOutput ? sigmoid(sum) : act.fn(sum));
+        let activation = isOutput ? sigmoid(sum) : act.fn(sum);
+        
+        // Apply dropout during training to hidden layers
+        if (useDropout && !isOutput) {
+          if (Math.random() < dropoutRate) {
+            activation = 0;
+          } else {
+            // Scale up surviving neurons to maintain expected sum
+            activation /= (1 - dropoutRate);
+          }
+        }
+        
+        layer.push(activation);
       }
       all.push(layer);
     }
@@ -155,7 +178,7 @@ export class NeuralNetwork {
   }
 
   predict(x: number, y: number): number {
-    const all = this.forward(x, y);
+    const all = this.forward(x, y, false);
     return all[all.length - 1][0];
   }
 
@@ -172,7 +195,7 @@ export class NeuralNetwork {
     let totalLoss = 0;
 
     for (const sample of batch) {
-      const all = this.forward(sample.x, sample.y);
+      const all = this.forward(sample.x, sample.y, true);
       const out = all[all.length - 1][0];
 
       // Binary cross entropy, clamped to avoid log(0)

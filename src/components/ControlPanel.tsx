@@ -3,7 +3,7 @@
 // changing the learning rate applies immediately.
 
 import type { NetworkConfig } from "../nn/network";
-import type { OptimizerName, RegularizationName } from "../nn/network";
+import type { OptimizerName, RegularizationName, WeightInitName } from "../nn/network";
 import type { ActivationName } from "../nn/activations";
 import { datasetLabels, type DatasetName } from "../nn/datasets";
 import { ALL_FEATURES, type FeatureId } from "../nn/features";
@@ -12,11 +12,15 @@ interface Props {
   config: NetworkConfig;
   datasetName: DatasetName;
   running: boolean;
+  noiseLevel: number;
+  epochsPerFrame: number;
   onToggleRun: () => void;
   onStep: () => void;
   onReset: () => void;
   onConfigChange: (patch: Partial<NetworkConfig>) => void;
   onDatasetChange: (name: DatasetName) => void;
+  onChangeNoise: (level: number) => void;
+  onChangeSpeed: (speed: number) => void;
 }
 
 const MAX_LAYERS = 6;
@@ -26,11 +30,15 @@ export function ControlPanel({
   config,
   datasetName,
   running,
+  noiseLevel,
+  epochsPerFrame,
   onToggleRun,
   onStep,
   onReset,
   onConfigChange,
   onDatasetChange,
+  onChangeNoise,
+  onChangeSpeed,
 }: Props) {
   const layers = config.hiddenLayers;
 
@@ -77,6 +85,17 @@ export function ControlPanel({
         <button className="btn" onClick={onReset}>
           Reset
         </button>
+        <select
+          className="speed-select"
+          value={epochsPerFrame}
+          onChange={(e) => onChangeSpeed(Number(e.target.value))}
+        >
+          <option value={1}>1x Speed</option>
+          <option value={2}>2x Speed</option>
+          <option value={4}>4x Speed</option>
+          <option value={8}>8x Speed</option>
+          <option value={16}>16x Speed</option>
+        </select>
       </div>
 
       <label className="field" data-tour="dataset">
@@ -91,6 +110,20 @@ export function ControlPanel({
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="field">
+        <span>
+          Noise <code>{noiseLevel.toFixed(2)}</code>
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={noiseLevel}
+          onChange={(e) => onChangeNoise(Number(e.target.value))}
+        />
       </label>
 
       <div className="field" data-tour="features">
@@ -124,6 +157,20 @@ export function ControlPanel({
             <option value="tanh">tanh</option>
             <option value="relu">ReLU</option>
             <option value="sigmoid">sigmoid</option>
+          </select>
+        </label>
+
+        <label className="field">
+          <span>Weight Init</span>
+          <select
+            value={config.weightInit || "xavier"}
+            onChange={(e) =>
+              onConfigChange({ weightInit: e.target.value as WeightInitName })
+            }
+          >
+            <option value="xavier">Xavier</option>
+            <option value="he">He</option>
+            <option value="zero">Zero</option>
           </select>
         </label>
 
@@ -184,6 +231,24 @@ export function ControlPanel({
               value={config.regularizationRate}
               onChange={(e) =>
                 onConfigChange({ regularizationRate: Number(e.target.value) })
+              }
+            />
+          </label>
+        )}
+
+        {layers.length > 0 && (
+          <label className="field">
+            <span>
+              Dropout <code>{(config.dropoutRate || 0).toFixed(2)}</code>
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={0.5}
+              step={0.05}
+              value={config.dropoutRate || 0}
+              onChange={(e) =>
+                onConfigChange({ dropoutRate: Number(e.target.value) })
               }
             />
           </label>

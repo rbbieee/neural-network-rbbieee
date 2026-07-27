@@ -33,6 +33,8 @@ export const PRESET_LABS: PresetLab[] = [
       regularization: "none",
       regularizationRate: 0,
       batchSize: 20,
+      weightInit: "xavier",
+      dropoutRate: 0,
     },
   },
   {
@@ -53,6 +55,8 @@ export const PRESET_LABS: PresetLab[] = [
       regularization: "none",
       regularizationRate: 0,
       batchSize: 20,
+      weightInit: "xavier",
+      dropoutRate: 0,
     },
   },
   {
@@ -73,6 +77,8 @@ export const PRESET_LABS: PresetLab[] = [
       regularization: "none",
       regularizationRate: 0,
       batchSize: 20,
+      weightInit: "xavier",
+      dropoutRate: 0,
     },
   },
   {
@@ -93,6 +99,8 @@ export const PRESET_LABS: PresetLab[] = [
       regularization: "none",
       regularizationRate: 0,
       batchSize: 20,
+      weightInit: "he",
+      dropoutRate: 0,
     },
   },
   {
@@ -113,6 +121,8 @@ export const PRESET_LABS: PresetLab[] = [
       regularization: "l2",
       regularizationRate: 0.01,
       batchSize: 10,
+      weightInit: "xavier",
+      dropoutRate: 0,
     },
   },
 ];

@@ -72,8 +72,11 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
 
     data.forEach((s, idx) => {
       const isTest = idx % 5 === 0 && datasetName !== "custom";
+      const px = toPx(s.x);
+      const py = toPx(s.y);
+      
       ctx.beginPath();
-      ctx.arc(toPx(s.x), toPx(s.y), isTest ? 4.5 : 4, 0, Math.PI * 2);
+      ctx.arc(px, py, isTest ? 4.5 : 4, 0, Math.PI * 2);
       
       if (isTest) {
         ctx.fillStyle = "transparent";
@@ -84,6 +87,21 @@ export function DecisionBoundary({ network, data, epoch, datasetName, onProbe, o
         ctx.fillStyle = s.label === 1 ? colorPos : colorNeg;
         ctx.fill();
         ctx.strokeStyle = colorWindow;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Highlight misclassified points
+      const pred = network.predict(s.x, s.y);
+      const predLabel = pred >= 0.5 ? 1 : 0;
+      if (predLabel !== s.label) {
+        ctx.beginPath();
+        const r = 3;
+        ctx.moveTo(px - r, py - r);
+        ctx.lineTo(px + r, py + r);
+        ctx.moveTo(px + r, py - r);
+        ctx.lineTo(px - r, py + r);
+        ctx.strokeStyle = s.label === 1 ? "#000000" : "#ffffff";
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }

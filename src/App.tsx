@@ -13,6 +13,8 @@ import { TutorialOverlay } from "./components/TutorialOverlay";
 import { InfoTooltip } from "./components/InfoTooltip";
 import { PresetLabsBar } from "./components/PresetLabsBar";
 import { MathPanel } from "./components/MathPanel";
+import { ConfusionMatrix } from "./components/ConfusionMatrix";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { soundManager } from "./utils/audio";
 import { type NetworkConfig } from "./nn/network";
 
@@ -26,12 +28,15 @@ const INITIAL_CONFIG: NetworkConfig = {
   regularization: "none",
   regularizationRate: 0.001,
   batchSize: 20,
+  weightInit: "xavier",
+  dropoutRate: 0,
 };
 
 export default function App() {
   const t = useTraining(INITIAL_CONFIG, "circles");
   const [probe, setProbe] = useState<number[][] | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // Set dark obsidian theme by default
   useEffect(() => {
@@ -51,6 +56,8 @@ export default function App() {
       } else if (e.code === "KeyR") {
         setProbe(null);
         t.reset();
+      } else if (e.key === "?") {
+        setShowShortcuts((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -109,6 +116,8 @@ export default function App() {
             config={t.config}
             datasetName={t.datasetName}
             running={t.running}
+            noiseLevel={t.noiseLevel}
+            epochsPerFrame={t.epochsPerFrame}
             onToggleRun={() => {
               soundManager.playClick();
               t.setRunning(!t.running);
@@ -131,6 +140,8 @@ export default function App() {
               setProbe(null);
               t.changeDataset(name);
             }}
+            onChangeNoise={(level) => t.changeNoise(level)}
+            onChangeSpeed={(speed) => t.setEpochsPerFrame(speed)}
           />
 
           <section className="card" data-tour="decision-boundary">
@@ -176,6 +187,7 @@ export default function App() {
               <InfoTooltip sectionId="loss-chart" />
             </h2>
             <LossChart history={t.stats.lossHistory} testHistory={t.stats.testLossHistory} />
+            <ConfusionMatrix stats={t.stats} />
           </section>
         </div>
 
@@ -194,6 +206,8 @@ export default function App() {
       {showTutorial && (
         <TutorialOverlay onClose={() => setShowTutorial(false)} />
       )}
+      
+      <ShortcutsOverlay isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </>
   );
 }
