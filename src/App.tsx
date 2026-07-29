@@ -158,21 +158,26 @@ export default function App() {
               onAddPoint={t.addSample}
             />
             <div className="stats" data-tour="stats">
-              <span>
-                epoch <code>{t.stats.epoch}</code>
-              </span>
-              <span>
-                train loss <code>{t.stats.loss.toFixed(4)}</code>
-              </span>
-              <span>
-                test loss <code>{t.stats.testLoss.toFixed(4)}</code>
-              </span>
-              <span>
-                train acc <code>{(t.stats.accuracy * 100).toFixed(1)}%</code>
-              </span>
-              <span>
-                test acc <code>{(t.stats.testAccuracy * 100).toFixed(1)}%</code>
-              </span>
+              <div className="stats-card">
+                <span>Epoch</span>
+                <code>{t.stats.epoch}</code>
+              </div>
+              <div className="stats-card">
+                <span>Train Loss</span>
+                <code>{t.stats.loss.toFixed(4)}</code>
+              </div>
+              <div className="stats-card">
+                <span>Test Loss</span>
+                <code>{t.stats.testLoss.toFixed(4)}</code>
+              </div>
+              <div className="stats-card">
+                <span>Train Acc</span>
+                <code>{(t.stats.accuracy * 100).toFixed(1)}%</code>
+              </div>
+              <div className="stats-card">
+                <span>Test Acc</span>
+                <code>{(t.stats.testAccuracy * 100).toFixed(1)}%</code>
+              </div>
             </div>
           </section>
 
