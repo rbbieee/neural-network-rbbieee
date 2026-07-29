@@ -5,24 +5,24 @@
 
 :root,
 :root[data-theme="dark"] {
-  --desktop-a: #1c0505;
-  --desktop-b: #09090b;
-  --desktop-c: #2a0808;
+  --desktop-a: #1a1a20;
+  --desktop-b: #0c0c10;
+  --desktop-c: #14141a;
 
-  --window: rgba(10, 10, 14, 0.95);
-  --surface: rgba(18, 18, 24, 0.85);
-  --surface-solid: #15151c;
-  --sidebar: rgba(15, 15, 20, 0.9);
+  --window: rgba(20, 20, 26, 0.95);
+  --surface: rgba(28, 28, 36, 0.85);
+  --surface-solid: #1e1e26;
+  --sidebar: rgba(24, 24, 30, 0.9);
 
   --text: #f4f4f5;
   --muted: #a1a1aa;
-  --border: rgba(239, 68, 68, 0.2);
-  --border-strong: rgba(239, 68, 68, 0.4);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.15);
 
-  --blue: #ef4444;
-  --blue-press: #dc2626;
+  --blue: #f43f5e;
+  --blue-press: #e11d48;
   --orange: #3f3f46;
-  --pos: #ef4444;
+  --pos: #f43f5e;
   --neg: #3f3f46;
 
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
@@ -153,11 +153,12 @@ code {
 .card,
 .panel {
   background: var(--surface);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 18px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .channel-label {
@@ -281,9 +282,59 @@ code {
   background: var(--surface);
 }
 
-
+/* Custom Range Slider Styling */
 .field input[type="range"] {
-  accent-color: var(--blue);
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+  margin: 6px 0;
+}
+
+.field input[type="range"]:focus {
+  outline: none;
+}
+
+.field input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: var(--border-strong);
+  border-radius: 2px;
+}
+
+.field input[type="range"]::-webkit-slider-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: var(--blue);
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition: transform 0.1s;
+}
+
+.field input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Fieldset for Control Panel Groups */
+.control-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.control-group legend {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 0 6px;
 }
 
 .layer-slider {
@@ -372,16 +423,36 @@ code {
 }
 
 .stats {
-  display: flex;
-  gap: 20px;
-  margin-top: 12px;
-  font-size: 0.82rem;
-  color: var(--muted);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
 }
 
-.stats code {
-  font-weight: 600;
+.stats-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.stats-card span {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.stats-card code {
+  font-weight: 700;
   color: var(--text);
+  font-size: 1.1rem;
 }
 
 .footer {

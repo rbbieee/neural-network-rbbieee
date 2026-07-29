@@ -98,83 +98,116 @@ export function ControlPanel({
         </select>
       </div>
 
-      <label className="field" data-tour="dataset">
-        <span>Dataset</span>
-        <select
-          value={datasetName}
-          onChange={(e) => onDatasetChange(e.target.value as DatasetName)}
-        >
-          {Object.entries(datasetLabels).map(([key, label]) => (
-            <option key={key} value={key}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <fieldset className="control-group">
+        <legend>Data & Problem</legend>
+        <label className="field" data-tour="dataset">
+          <span>Dataset</span>
+          <select
+            value={datasetName}
+            onChange={(e) => onDatasetChange(e.target.value as DatasetName)}
+          >
+            {Object.entries(datasetLabels).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label className="field">
-        <span>
-          Noise <code>{noiseLevel.toFixed(2)}</code>
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.05}
-          value={noiseLevel}
-          onChange={(e) => onChangeNoise(Number(e.target.value))}
-        />
-      </label>
+        <label className="field">
+          <span>
+            Noise <code>{noiseLevel.toFixed(2)}</code>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={1}
+            step={0.05}
+            value={noiseLevel}
+            onChange={(e) => onChangeNoise(Number(e.target.value))}
+          />
+        </label>
 
-      <div className="field" data-tour="features">
-        <span>Features (Inputs)</span>
-        <div className="features-grid">
-          {ALL_FEATURES.map((feat) => {
-            const active = (config.inputs || ["x1", "x2"]).includes(feat.id);
-            return (
-              <button
-                key={feat.id}
-                type="button"
-                className={`feature-chip ${active ? "active" : ""}`}
-                onClick={() => toggleFeature(feat.id)}
-              >
-                {feat.label}
-              </button>
-            );
-          })}
+        <div className="field" data-tour="features">
+          <span>Features (Inputs)</span>
+          <div className="features-grid">
+            {ALL_FEATURES.map((feat) => {
+              const active = (config.inputs || ["x1", "x2"]).includes(feat.id);
+              return (
+                <button
+                  key={feat.id}
+                  type="button"
+                  className={`feature-chip ${active ? "active" : ""}`}
+                  onClick={() => toggleFeature(feat.id)}
+                >
+                  {feat.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </fieldset>
 
       <div data-tour="architecture">
-        <label className="field">
-          <span>Activation</span>
-          <select
-            value={config.activation}
-            onChange={(e) =>
-              onConfigChange({ activation: e.target.value as ActivationName })
-            }
-          >
-            <option value="tanh">tanh</option>
-            <option value="relu">ReLU</option>
-            <option value="sigmoid">sigmoid</option>
-          </select>
-        </label>
+        <fieldset className="control-group">
+          <legend>Architecture</legend>
+          <label className="field">
+            <span>Activation</span>
+            <select
+              value={config.activation}
+              onChange={(e) =>
+                onConfigChange({ activation: e.target.value as ActivationName })
+              }
+            >
+              <option value="tanh">tanh</option>
+              <option value="relu">ReLU</option>
+              <option value="sigmoid">sigmoid</option>
+            </select>
+          </label>
 
-        <label className="field">
-          <span>Weight Init</span>
-          <select
-            value={config.weightInit || "xavier"}
-            onChange={(e) =>
-              onConfigChange({ weightInit: e.target.value as WeightInitName })
-            }
-          >
-            <option value="xavier">Xavier</option>
-            <option value="he">He</option>
-            <option value="zero">Zero</option>
-          </select>
-        </label>
+          <label className="field">
+            <span>Weight Init</span>
+            <select
+              value={config.weightInit || "xavier"}
+              onChange={(e) =>
+                onConfigChange({ weightInit: e.target.value as WeightInitName })
+              }
+            >
+              <option value="xavier">Xavier</option>
+              <option value="he">He</option>
+              <option value="zero">Zero</option>
+            </select>
+          </label>
 
-        <label className="field">
+          <div className="field">
+            <span>
+              Hidden layers ({layers.length})
+              <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 0}>
+                -
+              </button>
+              <button className="btn tiny" onClick={addLayer} disabled={layers.length >= MAX_LAYERS}>
+                +
+              </button>
+            </span>
+            {layers.map((n, i) => (
+              <label key={i} className="layer-slider">
+                <code>layer {i + 1}: {n} neurons</code>
+                <input
+                  type="range"
+                  min={1}
+                  max={MAX_NEURONS}
+                  step={1}
+                  value={n}
+                  onChange={(e) => setNeurons(i, Number(e.target.value))}
+                />
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="control-group">
+          <legend>Training Hyperparams</legend>
+          <label className="field">
           <span>Optimizer</span>
           <select
             value={config.optimizer}
@@ -270,30 +303,7 @@ export function ControlPanel({
           />
         </label>
 
-        <div className="field">
-          <span>
-            Hidden layers ({layers.length})
-            <button className="btn tiny" onClick={removeLayer} disabled={layers.length <= 0}>
-              -
-            </button>
-            <button className="btn tiny" onClick={addLayer} disabled={layers.length >= MAX_LAYERS}>
-              +
-            </button>
-          </span>
-          {layers.map((n, i) => (
-            <label key={i} className="layer-slider">
-              <code>layer {i + 1}: {n} neurons</code>
-              <input
-                type="range"
-                min={1}
-                max={MAX_NEURONS}
-                step={1}
-                value={n}
-                onChange={(e) => setNeurons(i, Number(e.target.value))}
-              />
-            </label>
-          ))}
-        </div>
+        </fieldset>
       </div>
     </div>
   );
