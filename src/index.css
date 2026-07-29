@@ -5,25 +5,25 @@
 
 :root,
 :root[data-theme="dark"] {
-  --desktop-a: #1a1a20;
-  --desktop-b: #0c0c10;
-  --desktop-c: #14141a;
+  --desktop-a: #000000;
+  --desktop-b: #000000;
+  --desktop-c: #050505;
 
-  --window: rgba(20, 20, 26, 0.95);
-  --surface: rgba(28, 28, 36, 0.85);
-  --surface-solid: #1e1e26;
-  --sidebar: rgba(24, 24, 30, 0.9);
+  --window: rgba(0, 0, 0, 0.95);
+  --surface: rgba(28, 28, 30, 0.7);
+  --surface-solid: #1c1c1e;
+  --sidebar: rgba(28, 28, 30, 0.75);
 
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.15);
+  --text: #ffffff;
+  --muted: #8e8e93;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
 
-  --blue: #f43f5e;
-  --blue-press: #e11d48;
-  --orange: #3f3f46;
-  --pos: #f43f5e;
-  --neg: #3f3f46;
+  --blue: #ff3b30;
+  --blue-press: #d70015;
+  --orange: #3a3a3c;
+  --pos: #ff3b30;
+  --neg: #3a3a3c;
 
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
   --font-text: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
@@ -156,7 +156,7 @@ code {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 18px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
 }
@@ -285,6 +285,7 @@ code {
 /* Custom Range Slider Styling */
 .field input[type="range"] {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   background: transparent;
   margin: 6px 0;
@@ -309,6 +310,7 @@ code {
   background: var(--blue);
   cursor: pointer;
   -webkit-appearance: none;
+  appearance: none;
   margin-top: -6px;
   box-shadow: 0 0 10px rgba(244, 63, 94, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   transition: transform 0.1s;
@@ -1292,4 +1294,51 @@ kbd {
   font-weight: 600;
 }
 
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
+@keyframes slide-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(20px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+/* ============================================
+   Mobile Responsiveness
+   ============================================ */
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 0 16px;
+    gap: 24px;
+  }
+
+  .header {
+    padding: 16px;
+    text-align: center;
+  }
+
+  .header h1 {
+    font-size: 1.8rem;
+  }
+
+  .titlebar-title {
+    margin-right: 0;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .panel-row {
+    justify-content: center;
+  }
+}
